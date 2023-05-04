@@ -18,9 +18,10 @@
 #include <cstring>
 #include <cassert>
 
-int main(){
-    printf("hola mundo");
-}
-
-
 using namespace std;
+
+int main()
+{
+    cout << "hola mundo \n";
+    return 0;
+}
