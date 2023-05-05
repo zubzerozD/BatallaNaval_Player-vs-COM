@@ -17,11 +17,26 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <stdio.h>
+#include <ncurses.h>
 
 using namespace std;
 
+class enemigo
+{
+private:
+public:
+    void pintar();
+};
+
+void enemigo::pintar()
+{
+    move(5, 5);cout << "O\n";
+}
+
 int main()
 {
-    cout << "hola mundo \n";
+    enemigo a;
+    a.pintar();
     return 0;
 }
