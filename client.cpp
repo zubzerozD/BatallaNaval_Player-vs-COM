@@ -90,6 +90,14 @@ int main() {
         std::string tablerosActualizados = recibirDatos(socketCliente);
         std::cout << "Tableros actualizados:" << std::endl;
         std::cout << tablerosActualizados << std::endl;
+
+        // Recibir mensaje del servidor
+char buffer[TAM_BUFFER];
+int bytesRecibidos = recv(socketCliente, buffer, TAM_BUFFER - 1, 0);
+if (bytesRecibidos > 0) {
+    buffer[bytesRecibidos] = '\0';
+    std::cout << "Mensaje del servidor: " << buffer << std::endl;
+}
     }
 
     // Cerrar conexión
@@ -97,7 +105,3 @@ int main() {
 
     return 0;
 }
-
-
-
-

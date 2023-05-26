@@ -16,10 +16,10 @@ int clientesConectados = 0;
 pthread_t hilos[MAX_CLIENTES];
 const int TAM_TABLERO = 15;
 const int TAM_BUFFER = 1024;
+const int TAMANO_BUFFER = 1024;
 const char MAR = ' ';
 const char AGUA = '~';
 const char TOCADO = 'X';
-const char HUNDIDO = '#';
 
 struct DatosCliente {
     int socket;
@@ -84,13 +84,7 @@ void colocarBarcosAleatoriamente(Tablero& tablero, TableroCPU& tableroCPU) {
     srand(time(NULL));
 
     vector<Barco> barcos = {
-        { 'P', 5 },  // Portaaviones
-        { 'B', 4 },  // Buques
-        { 'B', 4 },  // Buques
-        { 'S', 3 },  // Submarinos
-        { 'S', 3 },  // Submarinos
-        { 'L', 1 },  // Lanchas
-        { 'L', 1 },  // Lanchas
+
         { 'L', 1 },  // Lanchas
     };
 
@@ -204,25 +198,45 @@ void colocarBarcosAleatoriamente(Tablero& tablero, TableroCPU& tableroCPU) {
 void procesarAtaqueCliente(Tablero& tablero, TableroCPU& tableroCPU, int fila, int columna) {
     if (tableroCPU.m_tablero[fila][columna] == MAR) {
         tableroCPU.m_tablero[fila][columna] = AGUA;
+    } else if (tableroCPU.m_tablero[fila][columna] == AGUA) {
         tableroCPU.m_tablero[fila][columna] = AGUA;
-    } else if (tableroCPU.m_tablero[fila][columna] == HUNDIDO) {
-        tableroCPU.m_tablero[fila][columna] = HUNDIDO;
     } else {
-        tableroCPU.m_tablero[fila][columna] = TOCADO;
         tableroCPU.m_tablero[fila][columna] = TOCADO;
     }
 }
 
+
 void procesarAtaqueCPU(Tablero& tablero, TableroCPU& tableroCPU, int fila, int columna) {
     if (tablero.m_tablero[fila][columna] == MAR) {
         tablero.m_tablero[fila][columna] = AGUA;
+    } else if (tablero.m_tablero[fila][columna] == AGUA) {
         tablero.m_tablero[fila][columna] = AGUA;
-    } else if (tablero.m_tablero[fila][columna] == HUNDIDO) {
-        tablero.m_tablero[fila][columna] = HUNDIDO;
     } else {
         tablero.m_tablero[fila][columna] = TOCADO;
-        tablero.m_tablero[fila][columna] = TOCADO;
     }
+}
+
+bool barcosCPUDestruidos(const TableroCPU& tableroCPU) {
+    for (int i = 0; i < TAM_TABLERO; ++i) {
+        for (int j = 0; j < TAM_TABLERO; ++j) {
+            if (tableroCPU.m_tablero[i][j] != 'P' && tableroCPU.m_tablero[i][j] != 'B' && tableroCPU.m_tablero[i][j] != 'S' && tableroCPU.m_tablero[i][j] != 'L') {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+bool barcosJugadorDestruidos(const Tablero& tablero) {
+    for (int i = 0; i < TAM_TABLERO; ++i) {
+        for (int j = 0; j < TAM_TABLERO; ++j) {
+            if (tablero.m_tablero[i][j] != 'P' && tablero.m_tablero[i][j] != 'B' && tablero.m_tablero[i][j] != 'S' && tablero.m_tablero[i][j] != 'L') {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 
@@ -258,61 +272,51 @@ void* conexionCliente(void* datosCliente) {
 
         // Esperar el ataque del cliente
         memset(buffer, 0, sizeof(buffer));
-        int bytesRecibidos = recv(clienteSocket, buffer, sizeof(buffer), 0);
-        if (bytesRecibidos <= 0) {
-            cout << "Cliente " << clienteID << " desconectado." << endl;
-            break;
-        }
+         char bufferFila[TAMANO_BUFFER];
 
-        // Procesar el ataque
-        int fila = buffer[0] - '0';
-        int columna = buffer[1] - '0';
-        procesarAtaqueCliente(tablero, tableroCPU, fila, columna);
+        int bytesRecibidosFila = recv(clienteSocket, bufferFila, sizeof(bufferFila) - 1, 0);
+    if (bytesRecibidosFila <= 0) {
+        // Error al recibir la fila o el cliente se desconectó
+        break;
+    }
+    bufferFila[bytesRecibidosFila] = '\0';  // Agregar el terminador nulo al final de los datos recibidos
+    int fila = std::stoi(bufferFila);  // Convertir los datos recibidos a entero
 
-        // Verificar si todos los barcos han sido hundidos
-        bool barcosHundidos = true;
-        for (int i = 0; i < TAM_TABLERO; ++i) {
-            for (int j = 0; j < TAM_TABLERO; ++j) {
-                if (tableroCPU.m_tablero[i][j] != MAR && tableroCPU.m_tablero[i][j] != AGUA && tableroCPU.m_tablero[i][j] != HUNDIDO) {
-                    barcosHundidos = false;
-                    break;
-                }
-            }
-            if (!barcosHundidos) {
-                break;
-            }
-        }
+    // Recibir la columna del cliente
+    char bufferColumna[TAMANO_BUFFER];  // Definir un búfer para almacenar los datos recibidos
+    int bytesRecibidosColumna = recv(clienteSocket, bufferColumna, sizeof(bufferColumna) - 1, 0);
+    if (bytesRecibidosColumna <= 0) {
+        // Error al recibir la columna o el cliente se desconectó
+        break;
+    }
+    bufferColumna[bytesRecibidosColumna] = '\0';  // Agregar el terminador nulo al final de los datos recibidos
+    int columna = std::stoi(bufferColumna);  // Convertir los datos recibidos a entero
 
-        if (barcosHundidos) {
-            string mensajeVictoria = "¡Felicidades, has ganado!\n";
-            send(clienteSocket, mensajeVictoria.c_str(), mensajeVictoria.length(), 0);
-            break;
-        }
+    
+    // Procesar el ataque del cliente llamando a la función 'procesarAtaqueCliente'
+    procesarAtaqueCliente(tablero, tableroCPU, fila, columna);
 
-        // Realizar el ataque de la CPU
-        int filaCPU = rand() % TAM_TABLERO;
-        int columnaCPU = rand() % TAM_TABLERO;
-        procesarAtaqueCPU(tablero, tableroCPU, filaCPU, columnaCPU);
+    bool barcosCPUHundidos = barcosCPUDestruidos(tableroCPU);
+    if (barcosCPUHundidos) {
+    // Mensaje de victoria
+    std::string mensaje = "¡Has ganado! Has destruido todos los barcos de la CPU.";
+    // Enviar el mensaje al cliente
+    send(clienteSocket, mensaje.c_str(), mensaje.size(), 0);
+    break;
+}
 
-        // Verificar si todos los barcos del cliente han sido hundidos
-        bool barcosClienteHundidos = true;
-        for (int i = 0; i < TAM_TABLERO; ++i) {
-            for (int j = 0; j < TAM_TABLERO; ++j) {
-                if (tablero.m_tablero[i][j] != MAR && tablero.m_tablero[i][j] != AGUA && tablero.m_tablero[i][j] != HUNDIDO) {
-                    barcosClienteHundidos = false;
-                    break;
-                }
-            }
-            if (!barcosClienteHundidos) {
-                break;
-            }
-        }
+    // Realizar el ataque de la CPU
+    int filaCPU = rand() % TAM_TABLERO;
+    int columnaCPU = rand() % TAM_TABLERO;
+    procesarAtaqueCPU(tablero, tableroCPU, filaCPU, columnaCPU);
 
-        if (barcosClienteHundidos) {
-            string mensajeDerrota = "¡Has perdido! Mejor suerte la próxima vez.\n";
-            send(clienteSocket, mensajeDerrota.c_str(), mensajeDerrota.length(), 0);
-            break;
-        }
+    // Verificar si todos los barcos del jugador han sido destruidos
+    bool barcosJugadorHundidos = barcosJugadorDestruidos(tablero);
+    if (barcosJugadorHundidos) {
+    // Mensaje de derrota
+    cout << "¡Has perdido! Todos tus barcos han sido destruidos por la CPU." << endl;
+    break;
+    }
     }
 
     // Cerrar la conexión con el cliente
