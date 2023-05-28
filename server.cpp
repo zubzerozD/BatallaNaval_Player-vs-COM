@@ -98,8 +98,14 @@ void colocarBarcosAleatoriamente(Tablero &tablero, Tablero &tableroCpu)
     srand(time(NULL));
 
     vector<Barco> barcos = {
-
         {'L', 1}, // Lanchas
+        {'L', 1}, // Lanchas
+        {'L', 1}, // Lanchas
+        {'S', 3}, // Submarino
+        {'S', 3}, // Submarino
+        {'B', 4}, // Submarino
+        {'B', 4}, // Submarino
+        {'P', 5}, //Portaaviones
     };
 
     for (const Barco &barco : barcos)
@@ -260,7 +266,6 @@ void enviarDatosDoble(int clienteSocket, const std::string &mensaje, const std::
     }
 }
 
-
 void enviarDatos(int clienteSocket, const std::string &mensaje)
 {
     // Convertir el mensaje a un arreglo de caracteres
@@ -274,7 +279,6 @@ void enviarDatos(int clienteSocket, const std::string &mensaje)
         std::cerr << "Error al enviar los datos al cliente." << std::endl;
     }
 }
-
 
 void enviarDatosCPU(int clienteSocket, const std::string &mensaje)
 {
@@ -305,24 +309,39 @@ bool quedanBarcos(Tablero &tableroCpu)
     return false; // Si no se encontró ningún valor distinto, no quedan barcos
 }
 
-void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int columna, int clienteSocket)
+void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int columna, int clienteSocket, int clienteID)
 {
     std::string mensaje;
 
     if (tableroCpu.m_tablero[fila][columna] == MAR)
     {
         tableroCpu.m_tablero[fila][columna] = AGUA;
-        mensaje = "¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") fue al mar!\n";
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") fue al mar!\n";
     }
     else if (tableroCpu.m_tablero[fila][columna] == AGUA)
     {
         tableroCpu.m_tablero[fila][columna] = AGUA;
-        mensaje = "¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n";
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n";
+    }
+    else if (tableroCpu.m_tablero[fila][columna] == 'L')
+    {   
+        tableroCpu.m_tablero[fila][columna] = 'X';
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la lancha!\n";
+    }
+    else if (tableroCpu.m_tablero[fila][columna] == 'S')
+    {   
+        tableroCpu.m_tablero[fila][columna] = 'X';
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al submarino!\n";
+    }
+    else if (tableroCpu.m_tablero[fila][columna] == 'B')
+    {   
+        tableroCpu.m_tablero[fila][columna] = 'X';
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la buque!\n";
     }
     else
     {
-        tableroCpu.m_tablero[fila][columna] = TOCADO;
-        mensaje = "¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso!\n";
+        tableroCpu.m_tablero[fila][columna] = 'X';
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al portaaviones!\n";
     }
 
     std::cout << mensaje;
@@ -332,30 +351,45 @@ void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int 
     if (!quedanBarcos(tableroCpu))
     {
         // No quedan barcos, el jugador ha ganado
-        std::string ganadorMensaje = "¡Felicidades! ¡Ganaste el juego!\n";
+        std::string ganadorMensaje = "[cliente " + std::to_string(clienteID) + "] ¡Felicidades! ¡Ganaste el juego!\n";
         std::cout << ganadorMensaje;
         enviarDatos(clienteSocket, ganadorMensaje); // Enviar mensaje al cliente
     }
 }
 
-void procesarAtaqueCPU(Tablero &tablero, Tablero &tableroCpu, int fila, int columna, int clienteSocket)
+void procesarAtaqueCPU(Tablero &tablero, Tablero &tableroCpu, int fila, int columna, int clienteSocket, int clienteID)
 {
     std::string mensajeCPU; // Declarar la variable mensaje fuera de los bloques condicionales
 
     if (tablero.m_tablero[fila][columna] == MAR)
     {
         tablero.m_tablero[fila][columna] = AGUA;
-        mensajeCPU = "¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") fue al mar!\n"; // Asignar un valor a mensaje con las coordenadas
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") fue al mar!\n"; // Asignar un valor a mensaje con las coordenadas
     }
     else if (tablero.m_tablero[fila][columna] == AGUA)
     {
         tablero.m_tablero[fila][columna] = AGUA;
-        mensajeCPU = "¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n"; // Asignar un valor a mensaje con las coordenadas
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n"; // Asignar un valor a mensaje con las coordenadas
+    }
+    else if (tableroCpu.m_tablero[fila][columna] == 'L')
+    {   
+        tablero.m_tablero[fila][columna] = 'X';
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la lancha!\n";
+    }
+    else if (tablero.m_tablero[fila][columna] == 'S')
+    {   
+        tablero.m_tablero[fila][columna] = 'X';
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al submarino!\n";
+    }
+    else if (tablero.m_tablero[fila][columna] == 'B')
+    {   
+        tablero.m_tablero[fila][columna] = 'X';
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la buque!\n";
     }
     else
     {
-        tablero.m_tablero[fila][columna] = TOCADO;
-        mensajeCPU = "¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso!\n"; // Asignar un valor a mensaje con las coordenadas
+        tablero.m_tablero[fila][columna] = 'X';
+        mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al portaaviones!\n";
     }
 
     std::cout << mensajeCPU;
@@ -411,7 +445,7 @@ void *conexionCliente(void *datosCliente)
         }
         buffer[bytesRecibidosFila] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
         int fila = std::stoi(buffer);      // Convertir los datos recibidos a entero
-        std::cout << "Fila: " << fila << std::endl;
+        std::cout << "[cliente " + std::to_string(clienteID) + "] Fila: " << fila << std::endl;
 
         // Recibir la columna del cliente
         int bytesRecibidosColumna = recv(clienteSocket, buffer, sizeof(buffer) - 1, 0);
@@ -422,28 +456,28 @@ void *conexionCliente(void *datosCliente)
         }
         buffer[bytesRecibidosColumna] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
         int columna = std::stoi(buffer);      // Convertir los datos recibidos a entero
-        std::cout << "Columna: " << columna << std::endl;
+        std::cout << "[cliente " + std::to_string(clienteID) + "] Columna: " << columna << std::endl;
 
         // Procesar el ataque del cliente llamando a la función 'procesarAtaqueCliente'
-        procesarAtaqueCliente(tablero, tableroCpu, fila, columna, clienteSocket);
-        std::cout << "Se envió el resultado del ataque del cliente" << std::endl;
+        procesarAtaqueCliente(tablero, tableroCpu, fila, columna, clienteSocket, clienteID);
+        std::cout << "[cliente " + std::to_string(clienteID) + "] Se envió el resultado del ataque del cliente" << std::endl;
 
         // Realizar el ataque de la CPU
         int filaCPU = rand() % TAM_TABLERO;
         int columnaCPU = rand() % TAM_TABLERO;
-        procesarAtaqueCPU(tablero, tableroCpu, filaCPU, columnaCPU, clienteSocket);
-        std::cout << "Se envió el resultado del ataque del servidor" << std::endl;
+        procesarAtaqueCPU(tablero, tableroCpu, filaCPU, columnaCPU, clienteSocket, clienteID);
+        std::cout << "[cliente " + std::to_string(clienteID) + "] Se envió el resultado del ataque del servidor" << std::endl;
 
-        std::cout << "Tableros actualizados:" << std::endl;
+        std::cout << "[cliente " + std::to_string(clienteID) + "] Tableros actualizados:" << std::endl;
 
         if (!quedanBarcos(tableroCpu))
         {
-            enviarDatos(clienteSocket, "El jugador ha ganado");
+            enviarDatos(clienteSocket, "[cliente " + std::to_string(clienteID) + "] El jugador ha ganado");
             break;
         }
         else if (!quedanBarcos(tablero))
         {
-            enviarDatos(clienteSocket, "El servidor ha ganado");
+            enviarDatos(clienteSocket, "[cliente " + std::to_string(clienteID) + "] El servidor ha ganado");
             break;
         }
         else
@@ -457,7 +491,6 @@ void *conexionCliente(void *datosCliente)
     clientesConectados--;
     pthread_exit(NULL);
 }
-
 
 int main(int argc, char *argv[])
 {
