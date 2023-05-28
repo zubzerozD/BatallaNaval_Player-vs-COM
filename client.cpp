@@ -3,40 +3,75 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdexcept>
+#include <cctype> // Para std::toupper
+#include <limits> // Para std::numeric_limits
 
 #define TAM_BUFFER 50000
 
-// Función para recibir datos del servidor
-std::string recibirDatos(int socket)
+class ClienteSocket
 {
-    char buffer[TAM_BUFFER];
-    std::string datosRecibidos;
-    int bytesRecibidos;
+private:
+    int socketCliente;
+    struct sockaddr_in servidorDir;
 
-    do
+public:
+    ClienteSocket(int puerto)
     {
-        bytesRecibidos = recv(socket, buffer, TAM_BUFFER - 1, 0);
-        if (bytesRecibidos == -1)
+        // Crear socket
+        socketCliente = socket(AF_INET, SOCK_STREAM, 0);
+        if (socketCliente == -1)
         {
-            throw std::runtime_error("Error al recibir datos del servidor");
+            throw std::runtime_error("Error al crear el socket.");
         }
-        buffer[bytesRecibidos] = '\0';
-        datosRecibidos += buffer;
-    } while (bytesRecibidos == TAM_BUFFER - 1);
 
-    return datosRecibidos;
-}
+        // Configurar dirección del servidor
+        servidorDir.sin_family = AF_INET;
+        servidorDir.sin_port = htons(puerto);                 // Puerto del servidor
+        servidorDir.sin_addr.s_addr = inet_addr("127.0.0.1"); // Dirección IP del servidor
 
-// Función para enviar datos al servidor
-bool enviarDatos(int socket, const std::string &datos)
-{
-    if (send(socket, datos.c_str(), datos.length(), 0) == -1)
-    {
-        std::cerr << "Error al enviar datos al servidor" << std::endl;
-        return false;
+        // Conectar al servidor
+        if (connect(socketCliente, (struct sockaddr *)&servidorDir, sizeof(servidorDir)) == -1)
+        {
+            throw std::runtime_error("Error al conectar al servidor.");
+        }
     }
-    return true;
-}
+
+    std::string recibirDatos()
+    {
+        char buffer[TAM_BUFFER];
+        std::string datosRecibidos;
+        int bytesRecibidos;
+
+        do
+        {
+            bytesRecibidos = recv(socketCliente, buffer, TAM_BUFFER - 1, 0);
+            if (bytesRecibidos == -1)
+            {
+                throw std::runtime_error("Error al recibir datos del servidor");
+            }
+            buffer[bytesRecibidos] = '\0';
+            datosRecibidos += buffer;
+        } while (bytesRecibidos == TAM_BUFFER - 1);
+
+        return datosRecibidos;
+    }
+
+    bool enviarDatos(const std::string &datos)
+    {
+        if (send(socketCliente, datos.c_str(), datos.length(), 0) == -1)
+        {
+            std::cerr << "Error al enviar datos al servidor" << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    void cerrarConexion()
+    {
+        close(socketCliente);
+    }
+};
 
 int main(int argc, char *argv[])
 {
@@ -45,73 +80,72 @@ int main(int argc, char *argv[])
         std::cout << "Indicar puerto" << std::endl;
         return -1;
     }
+
     int serverPort = atoi(argv[1]);
-    int socketCliente;
-    struct sockaddr_in servidorDir;
-    // Crear socket
-    socketCliente = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketCliente == -1)
+
+    try
     {
-        std::cerr << "Error al crear el socket." << std::endl;
-        return 1;
-    }
+        ClienteSocket cliente(serverPort);
 
-    // Configurar dirección del servidor
-    servidorDir.sin_family = AF_INET;
-    servidorDir.sin_port = htons(serverPort);             // Puerto del servidor
-    servidorDir.sin_addr.s_addr = inet_addr("127.0.0.1"); // Dirección IP del servidor
+        // Recibir mensaje de bienvenida
+        std::string mensajeBienvenida = cliente.recibirDatos();
+        std::cout << mensajeBienvenida << std::endl;
 
-    // Conectar al servidor
-    if (connect(socketCliente, (struct sockaddr *)&servidorDir, sizeof(servidorDir)) == -1)
-    {
-        std::cerr << "Error al conectar al servidor." << std::endl;
-        return 1;
-    }
+        // Recibir y mostrar los tableros inicializados
+        std::string tablerosIniciales = cliente.recibirDatos();
+        std::cout << "Tableros iniciales:" << std::endl;
+        std::cout << tablerosIniciales << std::endl;
 
-    // Recibir mensaje de bienvenida
-    std::string mensajeBienvenida = recibirDatos(socketCliente);
-    std::cout << mensajeBienvenida << std::endl;
+        while (true) {
+            // Solicitar la fila al usuario
+            std::cout << "Ingrese la fila de ataque (0-14): ";
+            int fila;
+            std::cin >> fila;
 
-    // Recibir y mostrar los tableros inicializados
-    std::string tablerosIniciales = recibirDatos(socketCliente);
-    std::cout << "Tableros iniciales:" << std::endl;
-    std::cout << tablerosIniciales << std::endl;
+            if (std::cin.fail() || std::cin.peek() != '\n' || (fila < 0 || fila > 14)) {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "Ingresar una fila válida." << std::endl;
+                continue; // Volver a solicitar la fila
+            }
 
-    std::cout << "aqui inicio while" << std::endl;
+            // Enviar la fila al servidor
+            if (!cliente.enviarDatos(std::to_string(fila))) {
+                return 1;
+            }
 
-    while (true)
-    {
-        std::cout << "aqui inicio while" << std::endl;
-        // Solicitar la fila al usuario
-        std::cout << "Ingrese la fila de ataque: ";
-        int fila;
-        std::cin >> fila;
+            // Solicitar la columna al usuario
+            std::cout << "Ingrese la columna de ataque (A-O): ";
+            char columna;
+            std::cin >> columna;
 
-        // Enviar la fila al servidor
-        if (!enviarDatos(socketCliente, std::to_string(fila)))
-        {
-            return 1;
+            columna = std::toupper(columna); // Convertir a mayúscula
+
+            if (std::cin.fail() || std::cin.peek() != '\n' || (columna < 'A' || columna > 'O')) {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "Ingresar una columna válida." << std::endl;
+                continue; // Volver a solicitar la columna
+            }
+
+            std::string columnaStr = std::to_string(columna - 'A');
+            if (!cliente.enviarDatos(columnaStr)) {
+                return 1;
+            }
+
+            std::string mensaje = cliente.recibirDatos();
+            std::cout << mensaje << std::endl;
+
+            
         }
 
-        // Solicitar la columna al usuario
-        std::cout << "Ingrese la columna de ataque: ";
-        int columna;
-        std::cin >> columna;
-
-        // Enviar la columna al servidor
-        if (!enviarDatos(socketCliente, std::to_string(columna)))
-        {
-            return 1;
-        }
-
-        std::string mensaje = recibirDatos(socketCliente);
-        std::cout << mensaje << std::endl;
-
-        
+        cliente.cerrarConexion();
     }
-
-    // Cerrar conexión
-    close(socketCliente);
+    catch (const std::exception &ex)
+    {
+        std::cerr << "Error: " << ex.what() << std::endl;
+        return 1;
+    }
 
     return 0;
 }
