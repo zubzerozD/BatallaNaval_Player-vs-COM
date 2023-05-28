@@ -5,6 +5,8 @@
 #include <string.h>
 
 #define TAM_BUFFER 2048
+const char* SERVER_IP = "127.0.0.1";
+const int PORT = 8080;
 
 // Función para recibir datos del servidor
 std::string recibirDatos(int socket) {
@@ -34,44 +36,69 @@ bool enviarDatos(int socket, const std::string& datos) {
 }
 
 int main() {
-    int socketCliente;
-    struct sockaddr_in servidorDir;
-    char mensaje[1024];
+    int socketFd;
+    struct sockaddr_in serverAddress;
 
-    // Crear socket
-    socketCliente = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketCliente == -1) {
-        std::cerr << "Error al crear el socket." << std::endl;
+    // Crear el socket del cliente
+    socketFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (socketFd == -1) {
+        std::cerr << "Error al crear el socket" << std::endl;
         return 1;
     }
 
-    // Configurar dirección del servidor
-    servidorDir.sin_family = AF_INET;
-    servidorDir.sin_port = htons(8081); // Puerto del servidor
-    servidorDir.sin_addr.s_addr = inet_addr("127.0.0.1"); // Dirección IP del servidor
+    // Configurar la dirección del servidor
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(PORT);
 
-    // Conectar al servidor
-    if (connect(socketCliente, (struct sockaddr*)&servidorDir, sizeof(servidorDir)) == -1) {
-        std::cerr << "Error al conectar al servidor." << std::endl;
+    if (inet_pton(AF_INET, SERVER_IP, &(serverAddress.sin_addr)) <= 0) {
+        std::cerr << "Dirección IP inválida o no soportada" << std::endl;
         return 1;
     }
+
+    // Conectar con el servidor
+    if (connect(socketFd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::cerr << "Error al conectar con el servidor" << std::endl;
+        return 1;
+    }
+
+    // Recibir mensaje de confirmación de conexión
+    char connectMsg[256];
+    int bytesRead = read(socketFd, connectMsg, sizeof(connectMsg) - 1);
+    if (bytesRead < 0) {
+        std::cerr << "Error al recibir la confirmación de conexión" << std::endl;
+        return 1;
+    }
+    connectMsg[bytesRead] = '\0';
+
+    std::cout << "Mensaje del servidor: " << connectMsg << std::endl;
+
+    // Recibir mensaje de inicio del juego
+    char startMsg[256];
+    bytesRead = read(socketFd, startMsg, sizeof(startMsg) - 1);
+    if (bytesRead < 0) {
+        std::cerr << "Error al recibir el mensaje de inicio del juego" << std::endl;
+        return 1;
+    }
+    startMsg[bytesRead] = '\0';
+
+    std::cout << "Mensaje del servidor: " << startMsg << std::endl;
 
 
     while (true) {
          // Recibir mensaje de bienvenida
-        std::string mensajeBienvenida = recibirDatos(socketCliente);
+        std::string mensajeBienvenida = recibirDatos(socketFd);
         std::cout << mensajeBienvenida << std::endl;
 
         std::cout << "Tableros iniciales:" << std::endl;
-        std::string tableroString = recibirDatos(socketCliente);
-        std::string tableroCPUString = recibirDatos(socketCliente);
+        std::string tableroString = recibirDatos(socketFd);
+        std::string tableroCPUString = recibirDatos(socketFd);
         // Solicitar la fila al usuario
         std::cout << "Ingrese la fila de ataque: ";
         int fila;
         std::cin >> fila;
 
         // Enviar la fila al servidor
-        if (!enviarDatos(socketCliente, std::to_string(fila))) {
+        if (!enviarDatos(socketFd, std::to_string(fila))) {
             return 1;
         }
 
@@ -81,26 +108,26 @@ int main() {
         std::cin >> columna;
 
         // Enviar la columna al servidor
-        if (!enviarDatos(socketCliente, std::to_string(columna))) {
+        if (!enviarDatos(socketFd, std::to_string(columna))) {
             return 1;
         }
 
         // Recibir mensaje de resultado del disparo
-        std::string mensajeResultadoJugador = recibirDatos(socketCliente);
+        std::string mensajeResultadoJugador = recibirDatos(socketFd);
         std::cout << mensajeResultadoJugador << std::endl;
 
         // Recibir mensaje de resultado del disparo
-        std::string mensajeResultadoCPU = recibirDatos(socketCliente);
+        std::string mensajeResultadoCPU = recibirDatos(socketFd);
         std::cout << mensajeResultadoCPU << std::endl;
 
-        std::string mensajeGanador = recibirDatos(socketCliente);
+        std::string mensajeGanador = recibirDatos(socketFd);
         std::cout << mensajeGanador << std::endl;
 
-        std::string mensajePerdedor = recibirDatos(socketCliente);
+        std::string mensajePerdedor = recibirDatos(socketFd);
         std::cout << mensajePerdedor << std::endl;
     }
 
     // Cerrar conexión
-    close(socketCliente);
+    close(socketFd);
     return 0;
 }
