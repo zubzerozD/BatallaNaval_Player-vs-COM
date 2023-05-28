@@ -4,23 +4,21 @@
 #include <unistd.h>
 #include <string.h>
 
-#define TAM_BUFFER 1024
-
 // Función para recibir datos del servidor
 std::string recibirDatos(int socket) {
-    char buffer[TAM_BUFFER];
+    char buffer[1024];
     std::string datosRecibidos;
     int bytesRecibidos;
 
     do {
-
-        bytesRecibidos = recv(socket, buffer, TAM_BUFFER - 1, 0);
+        memset(buffer, 0, 1024);
+        bytesRecibidos = recv(socket, buffer, 1024 - 1, 0);
         if (bytesRecibidos == -1) {
             throw std::runtime_error("Error al recibir datos del servidor");
         }
         buffer[bytesRecibidos] = '\0';
         datosRecibidos += buffer;
-    } while (bytesRecibidos == TAM_BUFFER - 1);
+    } while (bytesRecibidos > 0);
 
     return datosRecibidos;
 }
@@ -37,7 +35,7 @@ bool enviarDatos(int socket, const std::string& datos) {
 int main() {
     int socketCliente;
     struct sockaddr_in servidorDir;
-    char mensaje[TAM_BUFFER];
+    char mensaje[1024];
 
     // Crear socket
     socketCliente = socket(AF_INET, SOCK_STREAM, 0);

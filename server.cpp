@@ -15,8 +15,8 @@ const int MAX_CLIENTES = 2;
 int clientesConectados = 0;
 pthread_t hilos[MAX_CLIENTES];
 const int TAM_TABLERO = 15;
-const int TAM_BUFFER = 1024;
-const int TAMANO_BUFFER = 1024;
+const int TAM_BUFFER = 50000;
+const int TAMANO_BUFFER = 50000;
 const char MAR = ' ';
 const char AGUA = '~';
 const char TOCADO = 'X';
@@ -302,6 +302,11 @@ void* conexionCliente(void* datosCliente) {
     // Procesar el ataque del cliente llamando a la función 'procesarAtaqueCliente'
     procesarAtaqueCliente(tablero, tableroCPU, fila, columna);
 
+        // Realizar el ataque de la CPU
+    int filaCPU = rand() % TAM_TABLERO;
+    int columnaCPU = rand() % TAM_TABLERO;
+    procesarAtaqueCPU(tablero, tableroCPU, filaCPU, columnaCPU);
+
     // Enviar mensaje de resultado del disparo al cliente
 std::string mensajeResultadoJugador;
 if (tableroCPU.m_tablero[fila][columna] == MAR) {
@@ -334,27 +339,11 @@ send(clienteSocket, mensajeResultadoCPU.c_str(), mensajeResultadoCPU.length(), 0
     break;
 }
 
-    // Realizar el ataque de la CPU
-    int filaCPU = rand() % TAM_TABLERO;
-    int columnaCPU = rand() % TAM_TABLERO;
-    procesarAtaqueCPU(tablero, tableroCPU, filaCPU, columnaCPU);
-
     // Verificar si todos los barcos del jugador han sido destruidos
     bool barcosJugadorHundidos = barcosJugadorDestruidos(tablero);
     if (barcosJugadorHundidos) {
     // Mensaje de derrota
     cout << "¡Has perdido! Todos tus barcos han sido destruidos por la CPU." << endl;
-    break;
-    }
-
-    if (barcosCPUDestruidos(tableroCPU)) {
-    std::string mensajeGanador = "¡Felicidades! Has ganado la partida.";
-    send(clienteSocket, mensajeGanador.c_str(), mensajeGanador.length(), 0);
-    break;
-    }
-    if (barcosJugadorDestruidos(tablero)) {
-    std::string mensajePerdedor = "¡Has perdido la partida! Mejor suerte la próxima vez.";
-    send(clienteSocket, mensajePerdedor.c_str(), mensajePerdedor.length(), 0);
     break;
     }
 }
