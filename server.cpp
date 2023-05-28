@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <mutex>
 
 using namespace std;
 
@@ -14,7 +15,7 @@ const int MAX_CLIENTES = 2;
 int clientesConectados = 0;
 pthread_t hilos[MAX_CLIENTES];
 const int TAM_TABLERO = 15;
-const int TAM_BUFFER = 50000;
+const int TAM_BUFFER = 2048;
 const int TAMANO_BUFFER = 50000;
 const char MAR = ' ';
 const char AGUA = '~';
@@ -39,7 +40,7 @@ struct Tablero
 };
 
 // Función para convertir el tablero a una cadena de caracteres
-string tableroToString(const Tablero &tablero, const Tablero &tableroCpu)
+string tableroToString(const Tablero &tablero)
 {
     string tableroString;
 
@@ -62,6 +63,14 @@ string tableroToString(const Tablero &tablero, const Tablero &tableroCpu)
         tableroString += '\n';
     }
 
+    return tableroString;
+}
+
+string tableroToStringCPU(const Tablero &tableroCpu)
+{
+    string tableroString;
+
+    // Etiquetas de los tableros
     tableroString += "\nRival\n";
     tableroString += "   A B C D E F G H I J K L M N O\n"; // Letras de columna
     tableroString += " ------------------------------------\n";
@@ -226,6 +235,32 @@ void colocarBarcosAleatoriamente(Tablero &tablero, Tablero &tableroCpu)
     }
 }
 
+void enviarDatosDoble(int clienteSocket, const std::string &mensaje, const std::string &otroMensaje)
+{
+    // Convertir el mensaje a un arreglo de caracteres
+    const char *buffer = mensaje.c_str();
+
+    // Enviar los datos al cliente
+    int bytesEnviados = send(clienteSocket, buffer, mensaje.length(), 0);
+
+    if (bytesEnviados == -1)
+    {
+        std::cerr << "Error al enviar los datos al cliente." << std::endl;
+    }
+
+    // Convertir el otro mensaje a un arreglo de caracteres
+    const char *bufferOtroMensaje = otroMensaje.c_str();
+
+    // Enviar los datos del otro mensaje al cliente
+    int bytesEnviadosOtroMensaje = send(clienteSocket, bufferOtroMensaje, otroMensaje.length(), 0);
+
+    if (bytesEnviadosOtroMensaje == -1)
+    {
+        std::cerr << "Error al enviar el otro mensaje al cliente." << std::endl;
+    }
+}
+
+
 void enviarDatos(int clienteSocket, const std::string &mensaje)
 {
     // Convertir el mensaje a un arreglo de caracteres
@@ -239,6 +274,7 @@ void enviarDatos(int clienteSocket, const std::string &mensaje)
         std::cerr << "Error al enviar los datos al cliente." << std::endl;
     }
 }
+
 
 void enviarDatosCPU(int clienteSocket, const std::string &mensaje)
 {
@@ -291,6 +327,7 @@ void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int 
 
     std::cout << mensaje;
     enviarDatos(clienteSocket, mensaje);
+    enviarDatos(clienteSocket, tableroToStringCPU(tableroCpu));
 
     if (!quedanBarcos(tableroCpu))
     {
@@ -322,8 +359,11 @@ void procesarAtaqueCPU(Tablero &tablero, Tablero &tableroCpu, int fila, int colu
     }
 
     std::cout << mensajeCPU;
-    enviarDatosCPU(clienteSocket, mensajeCPU);
+    enviarDatos(clienteSocket, mensajeCPU);
+    enviarDatos(clienteSocket, tableroToString(tablero));
 }
+
+std::mutex mtx;
 
 // Función que se ejecuta en el hilo del cliente
 void *conexionCliente(void *datosCliente)
@@ -353,9 +393,8 @@ void *conexionCliente(void *datosCliente)
     send(clienteSocket, mensajeBienvenida.c_str(), mensajeBienvenida.length(), 0);
     std::cout << mensajeBienvenida << std::endl;
 
-    string tableroString = tableroToString(tablero, tableroCpu);
-    send(clienteSocket, tableroString.c_str(), tableroString.length(), 0);
-    // std::cout << tableroString << std::endl;
+    // Envío de los tableros iniciales
+    enviarDatosDoble(clienteSocket, tableroToString(tablero), tableroToStringCPU(tableroCpu));
 
     // Ciclo principal del juego
     while (true)
@@ -363,56 +402,54 @@ void *conexionCliente(void *datosCliente)
         std::cout << "Esperando ataque del cliente " << clienteID << std::endl;
 
         // Esperar el ataque del cliente
-        //memset(buffer, 0, sizeof(buffer));
-        char bufferFila[TAMANO_BUFFER];
 
-        int bytesRecibidosFila = recv(clienteSocket, bufferFila, sizeof(bufferFila) - 1, 0);
+        int bytesRecibidosFila = recv(clienteSocket, buffer, sizeof(buffer) - 1, 0);
         if (bytesRecibidosFila <= 0)
         {
             // Error al recibir la fila o el cliente se desconectó
             break;
         }
-        bufferFila[bytesRecibidosFila] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
-        int fila = std::stoi(bufferFila);      // Convertir los datos recibidos a entero
+        buffer[bytesRecibidosFila] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
+        int fila = std::stoi(buffer);      // Convertir los datos recibidos a entero
         std::cout << "Fila: " << fila << std::endl;
+
         // Recibir la columna del cliente
-        char bufferColumna[TAMANO_BUFFER]; // Definir un búfer para almacenar los datos recibidos
-        int bytesRecibidosColumna = recv(clienteSocket, bufferColumna, sizeof(bufferColumna) - 1, 0);
+        int bytesRecibidosColumna = recv(clienteSocket, buffer, sizeof(buffer) - 1, 0);
         if (bytesRecibidosColumna <= 0)
         {
             // Error al recibir la columna o el cliente se desconectó
             break;
         }
-        bufferColumna[bytesRecibidosColumna] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
-        int columna = std::stoi(bufferColumna);      // Convertir los datos recibidos a entero
+        buffer[bytesRecibidosColumna] = '\0'; // Agregar el terminador nulo al final de los datos recibidos
+        int columna = std::stoi(buffer);      // Convertir los datos recibidos a entero
         std::cout << "Columna: " << columna << std::endl;
-        
+
         // Procesar el ataque del cliente llamando a la función 'procesarAtaqueCliente'
         procesarAtaqueCliente(tablero, tableroCpu, fila, columna, clienteSocket);
-        std::cout << "Se envio el resultado del ataque del cliente" << std::endl;
+        std::cout << "Se envió el resultado del ataque del cliente" << std::endl;
 
         // Realizar el ataque de la CPU
         int filaCPU = rand() % TAM_TABLERO;
         int columnaCPU = rand() % TAM_TABLERO;
         procesarAtaqueCPU(tablero, tableroCpu, filaCPU, columnaCPU, clienteSocket);
+        std::cout << "Se envió el resultado del ataque del servidor" << std::endl;
 
-        std::cout << "Se envio el resultado del ataque del servidor" << std::endl;
-
-
-        enviarDatos(clienteSocket, tableroToString(tablero, tableroCpu));
+        std::cout << "Tableros actualizados:" << std::endl;
 
         if (!quedanBarcos(tableroCpu))
         {
-            enviarDatos(clienteSocket, "EL jugador a ganado");
+            enviarDatos(clienteSocket, "El jugador ha ganado");
+            break;
         }
         else if (!quedanBarcos(tablero))
         {
-            enviarDatos(clienteSocket, "EL servidor a ganado");
-        }else {
-            enviarDatos(clienteSocket, "No hay ganador");
+            enviarDatos(clienteSocket, "El servidor ha ganado");
+            break;
         }
-
-        std::cout << "Se envio si es que alguien gano" << std::endl;
+        else
+        {
+            enviarDatos(clienteSocket, " ");
+        }
     }
 
     // Cerrar la conexión con el cliente
@@ -421,10 +458,12 @@ void *conexionCliente(void *datosCliente)
     pthread_exit(NULL);
 }
 
-int main(int argc,char *argv[])
+
+int main(int argc, char *argv[])
 {
-    if (argc < 2){
-        std::cout<<"Indicar puerto"<<std::endl;
+    if (argc < 2)
+    {
+        std::cout << "Indicar puerto" << std::endl;
         return -1;
     }
     int serverPort = atoi(argv[1]);
@@ -486,7 +525,7 @@ int main(int argc,char *argv[])
         datosCliente.id = clientesConectados + 1;
         datosCliente.indiceHilo = clientesConectados;
         int resultado = pthread_create(&hilos[clientesConectados], NULL, conexionCliente, (void *)&datosCliente);
-        std::cout<<"Cliente "<<datosCliente.id<<" conectado PID: "<< resultado<<std::endl;
+        std::cout << "Cliente " << datosCliente.id << " conectado PID: " << resultado << std::endl;
         if (resultado != 0)
         {
             cout << "Error al crear el hilo para el cliente." << endl;
