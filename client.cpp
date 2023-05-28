@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define TAM_BUFFER 4096
+#define TAM_BUFFER 2048
 
 // Función para recibir datos del servidor
 std::string recibirDatos(int socket) {
@@ -13,15 +13,12 @@ std::string recibirDatos(int socket) {
     int bytesRecibidos;
 
     do {
-        memset(buffer, 0, TAM_BUFFER);
         bytesRecibidos = recv(socket, buffer, TAM_BUFFER - 1, 0);
         if (bytesRecibidos == -1) {
             throw std::runtime_error("Error al recibir datos del servidor");
         }
         buffer[bytesRecibidos] = '\0';
-        std::cout << buffer << std::endl;
         datosRecibidos += buffer;
-        std::cout << "bytesRecibidos: " << bytesRecibidos << std::endl;
     } while (bytesRecibidos == TAM_BUFFER - 1);
 
     return datosRecibidos;
@@ -50,7 +47,7 @@ int main() {
 
     // Configurar dirección del servidor
     servidorDir.sin_family = AF_INET;
-    servidorDir.sin_port = htons(8080); // Puerto del servidor
+    servidorDir.sin_port = htons(8081); // Puerto del servidor
     servidorDir.sin_addr.s_addr = inet_addr("127.0.0.1"); // Dirección IP del servidor
 
     // Conectar al servidor
@@ -59,11 +56,15 @@ int main() {
         return 1;
     }
 
-    // Recibir mensaje de bienvenida
-    std::string mensajeBienvenida = recibirDatos(socketCliente);
-    std::cout << mensajeBienvenida << std::endl;
 
     while (true) {
+         // Recibir mensaje de bienvenida
+        std::string mensajeBienvenida = recibirDatos(socketCliente);
+        std::cout << mensajeBienvenida << std::endl;
+
+        std::cout << "Tableros iniciales:" << std::endl;
+        std::string tableroString = recibirDatos(socketCliente);
+        std::string tableroCPUString = recibirDatos(socketCliente);
         // Solicitar la fila al usuario
         std::cout << "Ingrese la fila de ataque: ";
         int fila;
@@ -84,11 +85,6 @@ int main() {
             return 1;
         }
 
-        // Recibir y mostrar los tableros actualizados
-        std::string tablerosActualizados = recibirDatos(socketCliente);
-        std::cout << "Tableros actualizados:" << std::endl;
-        std::cout << tablerosActualizados << std::endl;
-
         // Recibir mensaje de resultado del disparo
         std::string mensajeResultadoJugador = recibirDatos(socketCliente);
         std::cout << mensajeResultadoJugador << std::endl;
@@ -106,6 +102,5 @@ int main() {
 
     // Cerrar conexión
     close(socketCliente);
-
     return 0;
 }

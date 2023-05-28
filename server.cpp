@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include <cstring>
+#include <sstream>
 #include <cstdlib>
 #include <ctime>
 #include <pthread.h>
@@ -10,7 +12,7 @@
 
 using namespace std;
 
-const int PUERTO = 8080;
+const int PUERTO = 8081;
 const int MAX_CLIENTES = 2;
 int clientesConectados = 0;
 pthread_t hilos[MAX_CLIENTES];
@@ -71,7 +73,7 @@ string tableroToString(const Tablero &tablero)
 }
 
 // Función para convertir el tablero a una cadena de caracteres
-string tableroToString(const TableroCPU &tableroCPU)
+string tableroCPUToString(const TableroCPU &tableroCPU)
 {
     string tableroString;
 
@@ -97,70 +99,54 @@ string tableroToString(const TableroCPU &tableroCPU)
 }
 
 // Función para colocar los barcos aleatoriamente en el tablero
-void colocarBarcosAleatoriamente(Tablero &tablero, TableroCPU &tableroCPU)
-{
+void colocarBarcosAleatoriamente(Tablero& tablero, TableroCPU& tableroCPU) {
     srand(time(NULL));
 
     vector<Barco> barcos = {
 
-        {'L', 1}, // Lanchas
+        { 'L', 1 },  // Lanchas
     };
 
-    for (const Barco &barco : barcos)
-    {
+    for (const Barco& barco : barcos) {
         bool colocado = false;
 
-        while (!colocado)
-        {
+        while (!colocado) {
             int filaInicial = rand() % TAM_TABLERO;
             int columnaInicial = rand() % TAM_TABLERO;
             bool orientacionHorizontal = rand() % 2 == 0;
 
-            if (orientacionHorizontal)
-            { // Colocar horizontalmente
-                if (columnaInicial + barco.tamano <= TAM_TABLERO)
-                { // Verificar que quepa en el tablero
+            if (orientacionHorizontal) {  // Colocar horizontalmente
+                if (columnaInicial + barco.tamano <= TAM_TABLERO) {  // Verificar que quepa en el tablero
                     bool ocupado = false;
 
-                    for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j)
-                    {
-                        if (tablero.m_tablero[filaInicial][j] != MAR)
-                        {
+                    for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j) {
+                        if (tablero.m_tablero[filaInicial][j] != MAR) {
                             ocupado = true;
                             break;
                         }
                     }
 
-                    if (!ocupado)
-                    {
-                        for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j)
-                        {
+                    if (!ocupado) {
+                        for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j) {
                             tablero.m_tablero[filaInicial][j] = barco.tipo;
                         }
 
                         colocado = true;
                     }
                 }
-            }
-            else
-            { // Colocar verticalmente
-                if (filaInicial + barco.tamano <= TAM_TABLERO)
-                { // Verificar que quepa en el tablero
+            } else {  // Colocar verticalmente
+                if (filaInicial + barco.tamano <= TAM_TABLERO) {  // Verificar que quepa en el tablero
                     bool ocupado = false;
 
-                    for (int i = filaInicial; i < filaInicial + barco.tamano; ++i)
-                    {
-                        if (tablero.m_tablero[i][columnaInicial] != MAR)
-                        {
+                    for (int i = filaInicial; i < filaInicial + barco.tamano; ++i) {
+                        if (tablero.m_tablero[i][columnaInicial] != MAR) {
                             ocupado = true;
                             break;
                         }
                     }
 
-                    if (!ocupado)
-                    {
-                        for (int i = filaInicial; i < filaInicial + barco.tamano; ++i)
-                        {
+                    if (!ocupado) {
+                        for (int i = filaInicial; i < filaInicial + barco.tamano; ++i) {
                             tablero.m_tablero[i][columnaInicial] = barco.tipo;
                         }
 
@@ -170,73 +156,51 @@ void colocarBarcosAleatoriamente(Tablero &tablero, TableroCPU &tableroCPU)
             }
         }
     }
-}
 
-// Función para colocar los barcos aleatoriamente en el tablero
-void colocarBarcosAleatoriamente(TableroCPU &tableroCPU)
-{
-    srand(time(NULL));
 
-    vector<Barco> barcos = {
 
-        {'L', 1}, // Lanchas
-    };
+    // Colocar barcos aleatoriamente en el tablero de la CPU (sin mostrarlos)
+    for (const Barco& barco : barcos) {
 
-    for (const Barco &barco : barcos)
-    {
         bool colocado = false;
 
-        while (!colocado)
-        {
+        while (!colocado) {
             int filaInicial = rand() % TAM_TABLERO;
             int columnaInicial = rand() % TAM_TABLERO;
             bool orientacionHorizontal = rand() % 2 == 0;
 
-            if (orientacionHorizontal)
-            { // Colocar horizontalmente
-                if (columnaInicial + barco.tamano <= TAM_TABLERO)
-                { // Verificar que quepa en el tablero
+            if (orientacionHorizontal) {  // Colocar horizontalmente
+                if (columnaInicial + barco.tamano <= TAM_TABLERO) {  // Verificar que quepa en el tablero
                     bool ocupado = false;
 
-                    for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j)
-                    {
-                        if (tableroCPU.m_tablero[filaInicial][j] != MAR)
-                        {
+                    for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j) {
+                        if (tableroCPU.m_tablero[filaInicial][j] != MAR) {
                             ocupado = true;
                             break;
                         }
                     }
 
-                    if (!ocupado)
-                    {
-                        for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j)
-                        {
+                    if (!ocupado) {
+                        for (int j = columnaInicial; j < columnaInicial + barco.tamano; ++j) {
                             tableroCPU.m_tablero[filaInicial][j] = barco.tipo;
                         }
 
                         colocado = true;
                     }
                 }
-            }
-            else
-            { // Colocar verticalmente
-                if (filaInicial + barco.tamano <= TAM_TABLERO)
-                { // Verificar que quepa en el tablero
+            } else {  // Colocar verticalmente
+                if (filaInicial + barco.tamano <= TAM_TABLERO) {  // Verificar que quepa en el tablero
                     bool ocupado = false;
 
-                    for (int i = filaInicial; i < filaInicial + barco.tamano; ++i)
-                    {
-                        if (tableroCPU.m_tablero[i][columnaInicial] != MAR)
-                        {
+                    for (int i = filaInicial; i < filaInicial + barco.tamano; ++i) {
+                        if (tableroCPU.m_tablero[i][columnaInicial] != MAR) {
                             ocupado = true;
                             break;
                         }
                     }
 
-                    if (!ocupado)
-                    {
-                        for (int i = filaInicial; i < filaInicial + barco.tamano; ++i)
-                        {
+                    if (!ocupado) {
+                        for (int i = filaInicial; i < filaInicial + barco.tamano; ++i) {
                             tableroCPU.m_tablero[i][columnaInicial] = barco.tipo;
                         }
 
@@ -246,10 +210,12 @@ void colocarBarcosAleatoriamente(TableroCPU &tableroCPU)
             }
         }
     }
+
 }
 
+
 // Función para procesar el ataque del cliente
-void procesarAtaqueCliente(Tablero &tablero, TableroCPU &tableroCPU, int fila, int columna)
+void procesarAtaqueCliente(TableroCPU &tableroCPU, int fila, int columna)
 {
     if (tableroCPU.m_tablero[fila][columna] == MAR)
     {
@@ -267,7 +233,7 @@ void procesarAtaqueCliente(Tablero &tablero, TableroCPU &tableroCPU, int fila, i
     }
 }
 
-void procesarAtaqueCPU(Tablero &tablero, TableroCPU &tableroCPU, int fila, int columna)
+void procesarAtaqueCPU(Tablero &tablero,int fila, int columna)
 {
     if (tablero.m_tablero[fila][columna] == MAR)
     {
@@ -344,16 +310,20 @@ void *conexionCliente(void *datosCliente)
     string mensajeBienvenida = "¡Bienvenido al juego de Batalla Naval! Eres el Cliente " + to_string(clienteID) + "\n";
     send(clienteSocket, mensajeBienvenida.c_str(), mensajeBienvenida.length(), 0);
 
-    // Enviar el tablero al cliente
+    // Ciclo principal del juego
+    while (!barcosCPUDestruidos(tableroCPU) && !barcosJugadorDestruidos(tablero))
+    {
+            // Enviar el tablero al cliente
     string tableroString = tableroToString(tablero);
 
     //Enviar el tablero al CPU
-    string tableroCPUString = tableroToString(tableroCPU);
+    string tableroCPUString = tableroCPUToString(tableroCPU);
 
     send(clienteSocket, tableroString.c_str(), tableroString.length(), 0);
-    // Ciclo principal del juego
-    while (true)
-    {
+    cout << "El Jugador " << clienteID << " ha recibido el tablero." << endl;
+    cout << tableroString << endl;
+    send(clienteSocket, tableroCPUString.c_str(), tableroCPUString.length(), 0);
+    cout << "El Jugador " << clienteID << " ha recibido el tablero de la CPU." << endl;
         // Esperar el ataque del cliente
         memset(buffer, 0, sizeof(buffer));
         char bufferFila[TAMANO_BUFFER];
@@ -379,12 +349,12 @@ void *conexionCliente(void *datosCliente)
         int columna = std::stoi(bufferColumna);      // Convertir los datos recibidos a entero
 
         // Procesar el ataque del cliente llamando a la función 'procesarAtaqueCliente'
-        procesarAtaqueCliente(tablero, tableroCPU, fila, columna);
+        procesarAtaqueCliente(tableroCPU, fila, columna);
 
         // Realizar el ataque de la CPU
         int filaCPU = rand() % TAM_TABLERO;
         int columnaCPU = rand() % TAM_TABLERO;
-        procesarAtaqueCPU(tablero, tableroCPU, filaCPU, columnaCPU);
+        procesarAtaqueCPU(tablero, filaCPU, columnaCPU);
 
         // Enviar mensaje de resultado del disparo al cliente
         std::string mensajeResultadoJugador;
@@ -400,6 +370,7 @@ void *conexionCliente(void *datosCliente)
         {
             mensajeResultadoJugador = "El Jugador disparas paro al agua.\n";
         }
+        cout << "El Jugador " << clienteID << " ha disparado a la CPU." << endl;
         send(clienteSocket, mensajeResultadoJugador.c_str(), mensajeResultadoJugador.length(), 0);
 
         // Enviar mensaje de resultado del disparo de la CPU al cliente
@@ -416,26 +387,22 @@ void *conexionCliente(void *datosCliente)
         {
             mensajeResultadoCPU = "La CPU disparado a esa posición antes.\n";
         }
+        cout << "La CPU ha disparado al Jugador " << clienteID << "." << endl;
+        send(clienteSocket, mensajeResultadoCPU.c_str(), mensajeResultadoCPU.length(), 0);
 
-        bool barcosCPUHundidos = barcosCPUDestruidos(tableroCPU);
-        if (barcosCPUHundidos)
-        {
-            // Mensaje de victoria
-            std::string Ganadormensaje = "¡Has ganado! Has destruido todos los barcos de la CPU.";
-            // Enviar el mensaje al cliente
-            send(clienteSocket, Ganadormensaje.c_str(), Ganadormensaje.size(), 0);
-            break;
-        }
-
-        // Verificar si todos los barcos del jugador han sido destruidos
-        bool barcosJugadorHundidos = barcosJugadorDestruidos(tablero);
-        if (barcosJugadorHundidos)
-        {
-            // Mensaje de derrota
-            cout << "¡Has perdido! Todos tus barcos han sido destruidos por la CPU." << endl;
-            break;
-        }
+    // Enviar mensaje de resultado final al cliente
+    std::string mensajeResultadoFinal;
+    if (barcosCPUDestruidos(tableroCPU))
+    {
+        mensajeResultadoFinal = "¡Felicidades! Has ganado el juego.\n";
     }
+    else if (barcosJugadorDestruidos(tablero))
+    {
+        mensajeResultadoFinal = "¡Has perdido! El CPU ha ganado el juego.\n";
+    }
+    send(clienteSocket, mensajeResultadoFinal.c_str(), mensajeResultadoFinal.length(), 0);
+    }
+
 
     // Cerrar la conexión con el cliente
     close(clienteSocket);
