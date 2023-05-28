@@ -4,21 +4,25 @@
 #include <unistd.h>
 #include <string.h>
 
+#define TAM_BUFFER 4096
+
 // Función para recibir datos del servidor
 std::string recibirDatos(int socket) {
-    char buffer[1024];
+    char buffer[TAM_BUFFER];
     std::string datosRecibidos;
     int bytesRecibidos;
 
     do {
-        memset(buffer, 0, 1024);
-        bytesRecibidos = recv(socket, buffer, 1024 - 1, 0);
+        memset(buffer, 0, TAM_BUFFER);
+        bytesRecibidos = recv(socket, buffer, TAM_BUFFER - 1, 0);
         if (bytesRecibidos == -1) {
             throw std::runtime_error("Error al recibir datos del servidor");
         }
         buffer[bytesRecibidos] = '\0';
+        std::cout << buffer << std::endl;
         datosRecibidos += buffer;
-    } while (bytesRecibidos > 0);
+        std::cout << "bytesRecibidos: " << bytesRecibidos << std::endl;
+    } while (bytesRecibidos == TAM_BUFFER - 1);
 
     return datosRecibidos;
 }
@@ -54,11 +58,6 @@ int main() {
         std::cerr << "Error al conectar al servidor." << std::endl;
         return 1;
     }
-
-    // Recibir y mostrar los tableros inicializados
-    std::string tablerosIniciales = recibirDatos(socketCliente);
-    std::cout << "Tableros iniciales:" << std::endl;
-    std::cout << tablerosIniciales << std::endl;
 
     // Recibir mensaje de bienvenida
     std::string mensajeBienvenida = recibirDatos(socketCliente);
