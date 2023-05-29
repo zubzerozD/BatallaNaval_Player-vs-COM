@@ -18,10 +18,10 @@ By:
 
 ## Requerimientos
 
--Crear un juego de batalla naval en el cual se pueda jugar contra la computadora.
--Usar sockets para la comunicación entre el cliente y el servidor.
--El servidor debe ser capaz de manejar múltiples clientes.
--El servidor debe ser capaz de manejar múltiples partidas al mismo tiempo.
+- Crear un juego de batalla naval en el cual se pueda jugar contra la computadora.
+- Usar sockets para la comunicación entre el cliente y el servidor.
+- El servidor debe ser capaz de manejar múltiples clientes.
+- El servidor debe ser capaz de manejar múltiples partidas al mismo tiempo.
 
 Por parte del cliente:
 - Conectar al servidor.
