@@ -27,7 +27,6 @@ Por parte del cliente:
 - Conectar al servidor.
 - Definir posiciones de embarcaciones (puede ser aleatorea) y enviarlas al servidor.
 - Visualizar tableros.
-- Jugar:
 - Indicar coordenadas de disparo.
 - Esperar y visualizar el resultado.
 - Lo anterior se repite hasta que existe un ganador.
