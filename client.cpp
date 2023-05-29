@@ -96,50 +96,71 @@ int main(int argc, char *argv[])
         std::cout << "Tableros iniciales:" << std::endl;
         std::cout << tablerosIniciales << std::endl;
 
-        while (true) {
-            // Solicitar la fila al usuario
-            std::cout << "Ingrese la fila de ataque (0-14): ";
-            int fila;
-            std::cin >> fila;
+        bool felicidades = false; // Variable para indicar si se ha recibido el mensaje "¡¡¡Felicidades Ganaste!!!"
 
-            if (std::cin.fail() || std::cin.peek() != '\n' || (fila < 0 || fila > 14)) {
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cout << "Ingresar una fila válida." << std::endl;
-                continue; // Volver a solicitar la fila
-            }
+        while (true)
+        {
+            while (true)
+            {
+                // Solicitar la fila al usuario
+                std::cout << "Ingrese la fila de ataque (0-14): ";
+                int fila;
+                std::cin >> fila;
 
-            // Enviar la fila al servidor
-            if (!cliente.enviarDatos(std::to_string(fila))) {
-                return 1;
-            }
+                if (std::cin.fail() || std::cin.peek() != '\n' || (fila < 0 || fila > 14))
+                {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    std::cout << "Ingresar una fila válida." << std::endl;
+                    continue; // Volver a solicitar la fila
+                }
 
-            // Solicitar la columna al usuario
-            std::cout << "Ingrese la columna de ataque (A-O): ";
-            char columna;
-            std::cin >> columna;
+                // Enviar la fila al servidor
+                if (!cliente.enviarDatos(std::to_string(fila)))
+                {
+                    return 1;
+                }
 
-            columna = std::toupper(columna); // Convertir a mayúscula
+                while (true)
+                {
+                    // Solicitar la columna al usuario
+                    std::cout << "Ingrese la columna de ataque (A-O): ";
+                    char columna;
+                    std::cin >> columna;
 
-            if (std::cin.fail() || std::cin.peek() != '\n' || (columna < 'A' || columna > 'O')) {
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cout << "Ingresar una columna válida." << std::endl;
-                continue; // Volver a solicitar la columna
-            }
+                    columna = std::toupper(columna); // Convertir a mayúscula
 
-            std::string columnaStr = std::to_string(columna - 'A');
-            if (!cliente.enviarDatos(columnaStr)) {
-                return 1;
+                    if (std::cin.fail() || std::cin.peek() != '\n' || (columna < 'A' || columna > 'O'))
+                    {
+                        std::cin.clear();
+                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        std::cout << "Ingresar una columna válida." << std::endl;
+                        continue; // Volver a solicitar la columna
+                    }
+
+                    std::string columnaStr = std::to_string(columna - 'A');
+                    if (!cliente.enviarDatos(columnaStr))
+                    {
+                        return 1;
+                    }
+
+                    break;
+                }
+
+                break;
             }
 
             std::string mensaje = cliente.recibirDatos();
             std::cout << mensaje << std::endl;
 
+            std::string mensaje2 = cliente.recibirDatos();
+            std::cout << mensaje2 << std::endl;
+
             
         }
 
-        cliente.cerrarConexion();
+        cliente.cerrarConexion(); // Cerrar la conexión
+
     }
     catch (const std::exception &ex)
     {

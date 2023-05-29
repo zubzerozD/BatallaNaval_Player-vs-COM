@@ -83,7 +83,15 @@ string tableroToStringCPU(const Tablero &tableroCpu)
         tableroString += to_string(i) + "|"; // Números de fila
         for (int j = 0; j < TAM_TABLERO; ++j)
         {
-            tableroString += tableroCpu.m_tablero[i][j];
+            char valor = tableroCpu.m_tablero[i][j];
+            if (valor == TOCADO || valor == AGUA)
+            {
+                tableroString += valor;
+            }
+            else
+            {
+                tableroString += MAR;
+            }
             tableroString += '|'; // Cambiar el carácter de separación
         }
         tableroString += '\n';
@@ -98,14 +106,14 @@ void colocarBarcosAleatoriamente(Tablero &tablero, Tablero &tableroCpu)
     srand(time(NULL));
 
     vector<Barco> barcos = {
-        {'L', 1}, // Lanchas
-        {'L', 1}, // Lanchas
+        {'L', 15}, // Lanchas
+        /*{'L', 1}, // Lanchas
         {'L', 1}, // Lanchas
         {'S', 3}, // Submarino
         {'S', 3}, // Submarino
         {'B', 4}, // Submarino
         {'B', 4}, // Submarino
-        {'P', 5}, //Portaaviones
+        {'P', 5}, //Portaaviones*/
     };
 
     for (const Barco &barco : barcos)
@@ -294,19 +302,20 @@ void enviarDatosCPU(int clienteSocket, const std::string &mensaje)
     }
 }
 
-bool quedanBarcos(Tablero &tableroCpu)
+bool verificarGanador(const Tablero &tablero)
 {
     for (int i = 0; i < TAM_TABLERO; ++i)
     {
         for (int j = 0; j < TAM_TABLERO; ++j)
         {
-            if (tableroCpu.m_tablero[i][j] != AGUA && tableroCpu.m_tablero[i][j] != MAR && tableroCpu.m_tablero[i][j] != TOCADO)
+            char c = tablero.m_tablero[i][j];
+            if (c != AGUA && c != MAR && c != TOCADO)
             {
-                return true; // Si se encuentra un valor distinto de AGUA, MAR y TOCADO, significa que aún quedan barcos
+                return false; // Si se encuentra un barco no destruido, el juego continúa
             }
         }
     }
-    return false; // Si no se encontró ningún valor distinto, no quedan barcos
+    return true; // Si no se encontró ningún barco no destruido, el jugador ha ganado
 }
 
 void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int columna, int clienteSocket, int clienteID)
@@ -324,19 +333,19 @@ void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int 
         mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n";
     }
     else if (tableroCpu.m_tablero[fila][columna] == 'L')
-    {   
+    {
         tableroCpu.m_tablero[fila][columna] = 'X';
         mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la lancha!\n";
     }
     else if (tableroCpu.m_tablero[fila][columna] == 'S')
-    {   
+    {
         tableroCpu.m_tablero[fila][columna] = 'X';
         mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al submarino!\n";
     }
     else if (tableroCpu.m_tablero[fila][columna] == 'B')
-    {   
+    {
         tableroCpu.m_tablero[fila][columna] = 'X';
-        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la buque!\n";
+        mensaje = "[cliente " + std::to_string(clienteID) + "] ¡El Usuario hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso aL buque!\n";
     }
     else
     {
@@ -348,12 +357,14 @@ void procesarAtaqueCliente(Tablero &tablero, Tablero &tableroCpu, int fila, int 
     enviarDatos(clienteSocket, mensaje);
     enviarDatos(clienteSocket, tableroToStringCPU(tableroCpu));
 
-    if (!quedanBarcos(tableroCpu))
+    if (verificarGanador(tableroCpu))
     {
-        // No quedan barcos, el jugador ha ganado
-        std::string ganadorMensaje = "[cliente " + std::to_string(clienteID) + "] ¡Felicidades! ¡Ganaste el juego!\n";
-        std::cout << ganadorMensaje;
-        enviarDatos(clienteSocket, ganadorMensaje); // Enviar mensaje al cliente
+        string mensajeGanadorServer = "[cliente " + to_string(clienteID) + "] ¡Felicidades, has ganado!\n";
+        cout << mensajeGanadorServer;
+        string mensajeGanador = "\n¡¡¡Felicidades Ganaste!!!\n";
+        enviarDatos(clienteSocket, mensajeGanador);
+        sleep(30);
+        close(clienteSocket);
     }
 }
 
@@ -372,17 +383,17 @@ void procesarAtaqueCPU(Tablero &tablero, Tablero &tableroCpu, int fila, int colu
         mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Otra vez al mar!\n"; // Asignar un valor a mensaje con las coordenadas
     }
     else if (tableroCpu.m_tablero[fila][columna] == 'L')
-    {   
+    {
         tablero.m_tablero[fila][columna] = 'X';
         mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la lancha!\n";
     }
     else if (tablero.m_tablero[fila][columna] == 'S')
-    {   
+    {
         tablero.m_tablero[fila][columna] = 'X';
         mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso al submarino!\n";
     }
     else if (tablero.m_tablero[fila][columna] == 'B')
-    {   
+    {
         tablero.m_tablero[fila][columna] = 'X';
         mensajeCPU = "[cliente " + std::to_string(clienteID) + "] ¡La CPU hizo un tiro en las coordenadas (" + std::to_string(fila) + ", " + std::to_string(columna) + ") Disparo exitoso a la buque!\n";
     }
@@ -469,26 +480,12 @@ void *conexionCliente(void *datosCliente)
         std::cout << "[cliente " + std::to_string(clienteID) + "] Se envió el resultado del ataque del servidor" << std::endl;
 
         std::cout << "[cliente " + std::to_string(clienteID) + "] Tableros actualizados:" << std::endl;
-
-        if (!quedanBarcos(tableroCpu))
-        {
-            enviarDatos(clienteSocket, "[cliente " + std::to_string(clienteID) + "] El jugador ha ganado");
-            break;
-        }
-        else if (!quedanBarcos(tablero))
-        {
-            enviarDatos(clienteSocket, "[cliente " + std::to_string(clienteID) + "] El servidor ha ganado");
-            break;
-        }
-        else
-        {
-            enviarDatos(clienteSocket, " ");
-        }
     }
 
     // Cerrar la conexión con el cliente
     close(clienteSocket);
     clientesConectados--;
+    cout << "Cliente " << clienteID << " se ha desconectado." << endl;
     pthread_exit(NULL);
 }
 
