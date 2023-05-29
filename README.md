@@ -6,7 +6,7 @@ Tarea de COMUNICACIÓN DE DATOS Y REDES
 1. Clonar el repositorio.
 2. Abrir la carpeta del repositorio en la terminal.
 3. Ejecutar el comando `make` para compilar el programa.
-4. Ejecutar el comando y indicar el puerto del servidor `./server puerto` para iniciar el servidor,indicar el puerto sin comillas. (Ejemplo: `./server 8080`)
+4. Ejecutar el comando y indicar el puerto del servidor `./server puerto` para iniciar el servidor. (Ejemplo: `./server 8080`)
 5. Abrir otra terminal en la misma carpeta.
 6. Ejecutar el comando y indicar la direccion Ip,y puerto `./client DirrecionIP puerto ` para iniciar el cliente. (Ejemplo: `./client 127.0.0.1 8080`)
 7. Seguir las instrucciones del programa.
