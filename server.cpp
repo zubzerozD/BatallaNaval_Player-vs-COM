@@ -111,8 +111,8 @@ void colocarBarcosAleatoriamente(Tablero &tablero, Tablero &tableroCpu)
         {'L', 1}, // Lanchas
         {'S', 3}, // Submarino
         {'S', 3}, // Submarino
-        {'B', 4}, // Submarino
-        {'B', 4}, // Submarino
+        {'B', 4}, // Buque
+        {'B', 4}, // Buque
         {'P', 5}, //Portaaviones
     };
 
