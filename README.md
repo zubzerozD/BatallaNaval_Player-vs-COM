@@ -24,21 +24,21 @@ By:
 -El servidor debe ser capaz de manejar múltiples partidas al mismo tiempo.
 
 Por parte del cliente:
-• Conectar al servidor.
-• Definir posiciones de embarcaciones (puede ser aleatorea) y enviarlas al servidor.
-• Visualizar tableros.
-• Jugar:
-◦ Indicar coordenadas de disparo.
-◦ Esperar y visualizar el resultado.
-◦ Lo anterior se repite hasta que existe un ganador.
+- Conectar al servidor.
+- Definir posiciones de embarcaciones (puede ser aleatorea) y enviarlas al servidor.
+- Visualizar tableros.
+- Jugar:
+- Indicar coordenadas de disparo.
+- Esperar y visualizar el resultado.
+- Lo anterior se repite hasta que existe un ganador.
 
 Por parte del servidor:
-• Levantar servicio y esperar por conexiones (clientes).
-• Por cada jugador conectado (cada hebra):
-◦ Definir posiciones de embarcaciones (aleatorea).
-◦ Solicitar disparo o generar disparo al azar
-◦ Verificar las jugadas.
-◦ Enviar resultados.
+- Levantar servicio y esperar por conexiones (clientes).
+- Por cada jugador conectado (cada hebra):
+- Definir posiciones de embarcaciones (aleatorea).
+- Solicitar disparo o generar disparo al azar
+- Verificar las jugadas.
+- Enviar resultados.
 
 ## Descripción
 - El juego consiste en un tablero de 15x15 en el cual se colocan 5 barcos de diferentes tamaños, los cuales son:
