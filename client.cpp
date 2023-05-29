@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <cctype> // Para std::toupper
 #include <limits> // Para std::numeric_limits
+#include <cctype> // Para std::toupper
+#include <limits> // Para std::numeric_limits
+#include <netdb.h> // Para gethostbyname
 
 #define TAM_BUFFER 50000
 
@@ -16,7 +19,7 @@ private:
     struct sockaddr_in servidorDir;
 
 public:
-    ClienteSocket(int puerto)
+    ClienteSocket(const char* direccionIP,int puerto)
     {
         // Crear socket
         socketCliente = socket(AF_INET, SOCK_STREAM, 0);
@@ -28,8 +31,7 @@ public:
         // Configurar dirección del servidor
         servidorDir.sin_family = AF_INET;
         servidorDir.sin_port = htons(puerto);                 // Puerto del servidor
-        servidorDir.sin_addr.s_addr = inet_addr("127.0.0.1"); // Dirección IP del servidor
-
+        servidorDir.sin_addr.s_addr = inet_addr(direccionIP); // Dirección IP del servidor
         // Conectar al servidor
         if (connect(socketCliente, (struct sockaddr *)&servidorDir, sizeof(servidorDir)) == -1)
         {
@@ -73,19 +75,19 @@ public:
     }
 };
 
-int main(int argc, char *argv[])
+int main(int argc,char *argv[])
 {
-    if (argc < 2)
+    if (argc < 3)
     {
         std::cout << "Indicar puerto" << std::endl;
         return -1;
     }
-
-    int serverPort = atoi(argv[1]);
+    const char* serverIP = argv[1];
+    int serverPort = atoi(argv[2]);
 
     try
     {
-        ClienteSocket cliente(serverPort);
+        ClienteSocket cliente(serverIP, serverPort);
 
         // Recibir mensaje de bienvenida
         std::string mensajeBienvenida = cliente.recibirDatos();

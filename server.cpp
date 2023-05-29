@@ -106,14 +106,14 @@ void colocarBarcosAleatoriamente(Tablero &tablero, Tablero &tableroCpu)
     srand(time(NULL));
 
     vector<Barco> barcos = {
-        {'L', 15}, // Lanchas
-        /*{'L', 1}, // Lanchas
+        {'L', 1}, // Lanchas
+        {'L', 1}, // Lanchas
         {'L', 1}, // Lanchas
         {'S', 3}, // Submarino
         {'S', 3}, // Submarino
         {'B', 4}, // Submarino
         {'B', 4}, // Submarino
-        {'P', 5}, //Portaaviones*/
+        {'P', 5}, //Portaaviones
     };
 
     for (const Barco &barco : barcos)
